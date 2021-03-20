@@ -4,6 +4,20 @@ from mathutils import Vector, Euler
 from typing import Tuple, List
 
 
+bl_info = {
+    "name": "Bounding box",
+    "author": "Thanh Phan <thanhph111@gmail.com>",
+    "version": (1, 0),
+    "blender": (2, 83, 0),
+    "category": "Add Mesh",
+    "location": "Operator Search",
+    "description": "Create axis-aligned bounding boxes from selected objects",
+    "warning": "",
+    "doc_url": "https://github.com/thanhph111/bounding-box",
+    "tracker_url": "",
+}
+
+
 def set_object_origin_location(origin_location: Vector) -> None:
     """Set object origin with global coordinate.
 
@@ -387,7 +401,3 @@ def unregister():
     bpy.types.VIEW3D_MT_add.remove(add_menu_draw)
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
-
-
-if __name__ == "__main__":
-    register()
