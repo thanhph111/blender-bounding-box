@@ -156,13 +156,16 @@ def create_basic_bounding_box(
     bounding_box_corner_location: Vector,
     bounding_box_dimensions: Vector,
     bounding_box_rotation: Euler,
-) -> None:
+) -> Object:
     """Create bounding box by basic information.
 
     Args:
         bounding_box_corner_location (Vector): Bounding box corner location.
         bounding_box_dimensions (Vector): Bounding box dimensions.
         bounding_box_rotation (Euler): Bounding box rotations.
+
+    Returns:
+        Object: Bounding box
     """
     # Add default cube
     bpy.ops.mesh.primitive_cube_add()
@@ -176,12 +179,14 @@ def create_basic_bounding_box(
     bounding_box.location = bounding_box_corner_location
     bounding_box.rotation_euler = bounding_box_rotation
 
+    return bounding_box
+
 
 def create_bounding_box(
     selected_objects: List[Object],
     active_object: Object = None,
     is_align_active_object: bool = False,
-) -> None:
+) -> Object:
     """Create bounding box from selected objects and active object.
 
     Args:
@@ -190,6 +195,9 @@ def create_bounding_box(
         is_align_active_object (bool, optional): Control bounding box based on
         world coordinate system or active object coordinate system. Defaults to
         False.
+
+    Returns:
+        Object: Bounding box
     """
     # Get bounding box information
     selected_objects_vertices = get_selected_objects_vertices(
@@ -215,7 +223,7 @@ def create_bounding_box(
     )
 
     # Create bounding box
-    create_basic_bounding_box(
+    bounding_box = create_basic_bounding_box(
         bounding_box_corner_location,
         bounding_box_dimensions,
         bounding_box_rotation,
@@ -224,9 +232,11 @@ def create_bounding_box(
     # Reset origin and set to bounds display
     bpy.ops.object.origin_set(type="ORIGIN_GEOMETRY", center="BOUNDS")
 
+    return bounding_box
+
 
 def get_selected_objects_and_active_object(
-    is_separate_active_object: bool = False
+    is_separate_active_object: bool = False,
 ) -> Tuple[List[Object], Object]:
     """Return selected objects and active object from context.
 
@@ -250,6 +260,7 @@ def get_selected_objects_and_active_object(
             if (
                 active_object.type == "MESH"
                 and active_object in selected_objects
+                and selected_objects != [active_object]
             ):
                 selected_objects.remove(active_object)
         else:
@@ -266,19 +277,103 @@ def get_selected_objects_and_active_object(
     return (selected_objects, active_object)
 
 
-if __name__ == "__main__":
-    # Does active object contribute vertices?
-    is_separate_active_object = True
-    selected_objects, active_object = get_selected_objects_and_active_object(
-        is_separate_active_object=is_separate_active_object
+class MESH_OT_bounding_box(bpy.types.Operator):
+    """Create a bounding box from selected objects"""
+
+    bl_idname = "mesh.bounding_box"
+    bl_label = "Insert Bounding Box"
+    bl_options = {"REGISTER", "UNDO"}
+
+    # Define Variables
+    coordinate_system: bpy.props.EnumProperty(
+        items=[
+            (
+                "active_object",
+                "Active object",
+                "Coordinate system of the active object",
+            ),
+            ("world", "World", "World coordinate system"),
+        ],
+        name="Coordinate system",
+        description="Choose coordinate system to create bounding box",
+        default="active_object",
+    )
+    is_separate_active_object: bpy.props.BoolProperty(
+        name="Separate active object",
+        description="Active object contribute vertices",
+        default=False,
+    )
+    is_wireframe: bpy.props.BoolProperty(
+        name="Wireframe",
+        description="Bounding box inserted under wireframe",
+        default=False,
+    )
+    is_render: bpy.props.BoolProperty(
+        name="Render", description="Bounding box show in render", default=True
     )
 
-    # Is bounding box based on world coordinate system or active object
-    # coordinate system?
-    is_align_active_object = True
-    if selected_objects and active_object:
-        create_bounding_box(
-            selected_objects=selected_objects,
-            active_object=active_object,
-            is_align_active_object=is_align_active_object,
+    @classmethod
+    def poll(_cls, context):
+        (selected_objects, _) = get_selected_objects_and_active_object(
+            is_separate_active_object=True
         )
+        return bool(selected_objects) and context.area.type == "VIEW_3D"
+
+    def execute(self, _context):
+        (
+            selected_objects,
+            active_object,
+        ) = get_selected_objects_and_active_object(
+            is_separate_active_object=self.is_separate_active_object
+        )
+
+        # Is bounding box based on world coordinate system or active object
+        # coordinate system?
+        is_align_active_object = (
+            True if self.coordinate_system == "active_object" else False
+        )
+
+        # Insert bounding box
+        if selected_objects and active_object:
+            bounding_box = create_bounding_box(
+                selected_objects=selected_objects,
+                active_object=active_object,
+                is_align_active_object=is_align_active_object,
+            )
+
+        # Display bounding box under wireframe
+        if self.is_wireframe:
+            bounding_box.display_type = "WIRE"
+
+        # Whether render bounding box
+        bounding_box.hide_render = not self.is_render
+
+        return {"FINISHED"}
+
+
+def add_menu_draw(self, _context):
+    """Draw on Add Menu"""
+    self.layout.operator(
+        operator=MESH_OT_bounding_box.bl_idname,
+        text="Bounding box",
+        icon="SHADING_BBOX",
+    )
+
+
+classes = [MESH_OT_bounding_box]
+
+
+def register():
+    for cls in classes:
+        bpy.utils.register_class(cls)
+    bpy.types.VIEW3D_MT_add.prepend(add_menu_draw)
+
+
+def unregister():
+    bpy.types.VIEW3D_MT_add.remove(add_menu_draw)
+    for cls in reversed(classes):
+        bpy.utils.unregister_class(cls)
+
+
+if __name__ == "__main__":
+    register()
