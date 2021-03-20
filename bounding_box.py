@@ -300,16 +300,18 @@ class MESH_OT_bounding_box(bpy.types.Operator):
     )
     is_separate_active_object: bpy.props.BoolProperty(
         name="Separate active object",
-        description="Active object contribute vertices",
+        description="Bounding box will not include the active object",
         default=False,
     )
     is_wireframe: bpy.props.BoolProperty(
-        name="Wireframe",
-        description="Bounding box inserted under wireframe",
+        name="Display as wireframe",
+        description="Show bounding box as a wireframe",
         default=False,
     )
     is_render: bpy.props.BoolProperty(
-        name="Render", description="Bounding box show in render", default=True
+        name="Show in Renders",
+        description="Show bounding box in Renders",
+        default=True,
     )
 
     @classmethod
@@ -349,6 +351,18 @@ class MESH_OT_bounding_box(bpy.types.Operator):
         bounding_box.hide_render = not self.is_render
 
         return {"FINISHED"}
+
+    def draw(self, _context):
+        layout = self.layout
+        layout.use_property_split = False
+        layout.use_property_decorate = False
+
+        layout.row().label(text="Coordinate system")
+        layout.row().prop(self, "coordinate_system", expand=True)
+
+        layout.row().prop(self, "is_separate_active_object")
+        layout.row().prop(self, "is_wireframe")
+        layout.row().prop(self, "is_render")
 
 
 def add_menu_draw(self, _context):
