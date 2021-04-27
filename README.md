@@ -1,5 +1,9 @@
 # Blender bounding box generator
 
+> On April 14, 2021, Blender 2.93 Beta has been released, confirming the integration of the Bounding Box Node in a new series of Geometry Node. It is more efficient and more compatible than the approach of this add-on. Therefore, it should be archived.
+>
+> You can [check the Differential Revision here](https://developer.blender.org/D10420).
+
 A Blender add-on for creating simple bounding boxes from selected objects. It creates AABB (axis-aligned bounding box) which based on the active object's coordinate system or world coordinate system.
 
 This add-on will be useful when you need to create a hole on the wall (using *Boolean*) to place your windows or when you need to calculate the size of an object group.
